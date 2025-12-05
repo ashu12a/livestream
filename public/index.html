@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Live Stream</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    body { background: #000; text-align: center; padding-top: 50px; }
+    video { width: 80%; border: 2px solid #fff; }
+    button { padding: 10px 20px; margin: 20px; }
+  </style>
+</head>
+<body>
+
+<h2 style="color:white">Live MP4 Stream</h2>
+
+<video id="player" controls autoplay></video>
+
+<script>
+  let hls;
+
+  function loadStream() {
+    const video = document.getElementById("player");
+
+    if (hls) hls.destroy();
+
+    hls = new Hls({
+      maxBufferLength: 10,   // Helps reduce buffering
+      liveSyncDuration: 2,   // Low-latency
+    });
+
+    hls.loadSource("/live.m3u8");
+    hls.attachMedia(video);
+
+    // ✅ Auto recover on fatal HLS errors
+    hls.on(Hls.Events.ERROR, function (event, data) {
+      console.warn("HLS Error:", data);
+
+      if (data.fatal) {
+        switch (data.type) {
+          case Hls.ErrorTypes.NETWORK_ERROR:
+            console.log("Trying to recover network error…");
+            hls.startLoad();
+            break;
+          case Hls.ErrorTypes.MEDIA_ERROR:
+            console.log("Trying to recover media error…");
+            hls.recoverMediaError();
+            break;
+          default:
+            console.log("Recreating HLS instance…");
+            loadStream(); // reload stream
+            break;
+        }
+      }
+    });
+  }
+
+  loadStream();
+</script>
+
+
+</body>
+</html>
